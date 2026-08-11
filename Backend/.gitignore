@@ -1,0 +1,31 @@
+# Dependencies (Bắt buộc ignore để khi push repo không bị hàng ngàn file)
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment variables (Không push file .env chứa thông tin bảo mật lên repo)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
