@@ -1,0 +1,10 @@
+name = "react-native-backend"
+main = "src/server.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "react-native-db"
+database_id = "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Thay id D1 sau khi chay npx wrangler d1 create react-native-db
+migrations_dir = "migrations"

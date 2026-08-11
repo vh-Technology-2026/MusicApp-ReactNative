@@ -6,6 +6,11 @@
   "scripts": {
     "dev": "nodemon",
     "start": "node src/server.js",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply react-native-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply react-native-db --remote",
+    "db:execute:local": "wrangler d1 execute react-native-db --local --command \"SELECT * FROM users;\"",
+    "db:execute:remote": "wrangler d1 execute react-native-db --remote --command \"SELECT * FROM users;\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +22,7 @@
     "express": "^5.2.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "wrangler": "^3.111.0"
   }
 }

@@ -7,6 +7,12 @@ const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 const app = express();
 
 // Middlewares
+app.use((req, res, next) => {
+  if (!req.env && typeof globalThis !== 'undefined' && globalThis.env) {
+    req.env = globalThis.env;
+  }
+  next();
+});
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
