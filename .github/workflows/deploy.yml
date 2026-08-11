@@ -62,8 +62,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   deploy-backend:
-    needs: [detect-changes, deploy-migrations]
-    if: always() && (needs.detect-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch') && (needs.deploy-migrations.result == 'success' || needs.deploy-migrations.result == 'skipped')
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -77,11 +77,11 @@ jobs:
           cache-dependency-path: Backend/package-lock.json
       - run: npm ci
       - name: Deploy Backend to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: 'Backend'
+        run: npx wrangler deploy
+        env:
+          CI: true
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   deploy-frontend:
     needs: detect-changes
