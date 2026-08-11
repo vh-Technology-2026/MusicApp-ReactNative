@@ -100,8 +100,10 @@ jobs:
       - run: npm ci
       - name: Build project
         run: npm run build
-      - name: Deploy Frontend to Cloudflare Pages
-        run: npx wrangler pages deploy dist --project-name react-native-frontend --branch main
+      - name: Ensure Pages Project Exists and Deploy Frontend
+        run: |
+          npx wrangler pages project create react-native-frontend --production-branch main || true
+          npx wrangler pages deploy dist --project-name react-native-frontend --branch main
         env:
           CI: true
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
