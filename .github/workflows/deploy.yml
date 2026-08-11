@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,15 +30,18 @@ jobs:
           filters: |
             frontend:
               - 'Frontend/**'
+              - '.github/workflows/**'
             backend:
               - 'Backend/**'
+              - '.github/workflows/**'
             migrations:
               - 'Backend/schema.sql'
               - 'Backend/migrations/**'
+              - '.github/workflows/**'
 
   deploy-migrations:
     needs: detect-changes
-    if: needs.detect-changes.outputs.migrations == 'true'
+    if: needs.detect-changes.outputs.migrations == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,7 +55,7 @@ jobs:
           cache-dependency-path: Backend/package-lock.json
       - run: npm ci
       - name: Deploy Database Migrations
-        run: npx wrangler d1 migrations apply react-native-db --remote
+        run: echo "y" | npx wrangler d1 migrations apply react-native-db --remote
         env:
           CI: true
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -59,7 +63,7 @@ jobs:
 
   deploy-backend:
     needs: [detect-changes, deploy-migrations]
-    if: always() && needs.detect-changes.outputs.backend == 'true' && (needs.deploy-migrations.result == 'success' || needs.deploy-migrations.result == 'skipped')
+    if: always() && (needs.detect-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch') && (needs.deploy-migrations.result == 'success' || needs.deploy-migrations.result == 'skipped')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -81,7 +85,7 @@ jobs:
 
   deploy-frontend:
     needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
+    if: needs.detect-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
