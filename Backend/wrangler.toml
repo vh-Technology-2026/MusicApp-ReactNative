@@ -1,5 +1,5 @@
 name = "react-native-backend"
-main = "src/server.js"
+main = "src/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 account_id = "e31df8959f3a5ef85ea543dd630aeb54"
