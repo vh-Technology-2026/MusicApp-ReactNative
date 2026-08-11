@@ -6,6 +6,9 @@ import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
+
+
+
 const DURATION = 600;
 
 export function AnimatedSplashOverlay() {
