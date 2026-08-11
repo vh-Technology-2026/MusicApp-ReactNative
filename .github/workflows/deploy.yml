@@ -56,8 +56,11 @@ jobs:
       - run: npm ci
       - name: Ensure D1 Database Exists and Apply Migrations
         run: |
-          npx wrangler d1 create react-native-db || true
-          DB_ID=$(npx wrangler d1 info react-native-db --json | jq -r '.uuid')
+          DB_ID=$(npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="react-native-db") | .uuid' | head -n 1)
+          if [ -z "$DB_ID" ] || [ "$DB_ID" == "null" ]; then
+            npx wrangler d1 create react-native-db || true
+            DB_ID=$(npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="react-native-db") | .uuid' | head -n 1)
+          fi
           if [ -n "$DB_ID" ] && [ "$DB_ID" != "null" ]; then
             sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
           fi
@@ -84,8 +87,11 @@ jobs:
       - run: npm ci
       - name: Auto-Detect D1 Database ID and Deploy Backend
         run: |
-          npx wrangler d1 create react-native-db || true
-          DB_ID=$(npx wrangler d1 info react-native-db --json | jq -r '.uuid')
+          DB_ID=$(npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="react-native-db") | .uuid' | head -n 1)
+          if [ -z "$DB_ID" ] || [ "$DB_ID" == "null" ]; then
+            npx wrangler d1 create react-native-db || true
+            DB_ID=$(npx wrangler d1 list --json 2>/dev/null | jq -r '.[] | select(.name=="react-native-db") | .uuid' | head -n 1)
+          fi
           if [ -n "$DB_ID" ] && [ "$DB_ID" != "null" ]; then
             sed -i "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
           fi
