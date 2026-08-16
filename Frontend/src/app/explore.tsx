@@ -1,180 +1,128 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// ── TVMUSIC Explore & Discover Screen ───────────────────────────────────────
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+const PLAYLISTS = [
+  {
+    id: 'p1',
+    name: 'Top 50 Việt Nam & Quốc Tế',
+    desc: 'Những bài hát đang viral nhiều nhất',
+    cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80',
+    tracks: '50 bài hát',
+  },
+  {
+    id: 'p2',
+    name: 'Lo-Fi Chill & Coding Night',
+    desc: 'Giai điệu thư giãn cho lập trình viên',
+    cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&q=80',
+    tracks: '32 bài hát',
+  },
+  {
+    id: 'p3',
+    name: 'Electronic Gaming Beats',
+    desc: 'Âm thanh bùng nổ năng lượng',
+    cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80',
+    tracks: '45 bài hát',
+  },
+  {
+    id: 'p4',
+    name: 'Acoustic Cafe Guitar',
+    desc: 'Nhạc êm dịu góc quán quen',
+    cover: 'https://images.unsplash.com/photo-1445985543470-41fdd5c31447?w=400&q=80',
+    tracks: '28 bài hát',
+  },
+];
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
+const GENRES = [
+  { name: 'Pop Music', color: '#EC4899', icon: '🎤' },
+  { name: 'Hip-Hop & Rap', color: '#F59E0B', icon: '🎧' },
+  { name: 'EDM & Dance', color: '#8B5CF6', icon: '⚡' },
+  { name: 'Indie & R&B', color: '#10B981', icon: '🎸' },
+  { name: 'Deep Focus', color: '#06B6D4', icon: '🧘' },
+  { name: 'Cloudflare R2', color: '#3B82F6', icon: '☁️' },
+];
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+export default function ExploreScreen() {
+  const router = useRouter();
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.logo}>🎵 TV<Text style={{ color: '#06B6D4' }}>MUSIC</Text></Text>
+          <Text style={styles.title}>Khám Phá Âm Nhạc</Text>
+          <Text style={styles.subtitle}>Bộ sưu tập Playlist & Thể loại tuyển chọn</Text>
+        </View>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+        {/* Genres Grid */}
+        <Text style={styles.sectionHeading}>🌟 Thể Loại Phổ Biến</Text>
+        <View style={styles.genreGrid}>
+          {GENRES.map((g) => {
+            const isSelected = selectedGenre === g.name;
+            return (
+              <TouchableOpacity
+                key={g.name}
+                style={[styles.genreCard, { backgroundColor: g.color + '22', borderColor: g.color + '66' }, isSelected && { borderColor: g.color, backgroundColor: g.color + '44' }]}
+                onPress={() => setSelectedGenre(isSelected ? null : g.name)}
+              >
+                <Text style={styles.genreIcon}>{g.icon}</Text>
+                <Text style={styles.genreName}>{g.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+        {/* Featured Playlists */}
+        <Text style={styles.sectionHeading}>💿 Playlist Nổi Bật</Text>
+        <View style={styles.playlistList}>
+          {PLAYLISTS.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              style={styles.playlistCard}
+              onPress={() => router.push('/' as any)}
+            >
+              <Image source={{ uri: p.cover }} style={styles.playlistCover} resizeMode="cover" />
+              <View style={styles.playlistInfo}>
+                <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
+                <Text style={styles.playlistDesc} numberOfLines={1}>{p.desc}</Text>
+                <Text style={styles.playlistTracks}>{p.tracks}</Text>
+              </View>
+              <View style={styles.playBadge}>
+                <Text style={{ color: '#FFF', fontSize: 12 }}>▶</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#0B0B14' },
+  scroll: { flex: 1 },
+  content: { padding: 16 },
+  header: { marginBottom: 20 },
+  logo: { fontSize: 15, fontWeight: '900', color: '#FFF', letterSpacing: 0.5, marginBottom: 4 },
+  title: { fontSize: 26, fontWeight: '800', color: '#FFF' },
+  subtitle: { fontSize: 13, color: '#94A3B8', marginTop: 2 },
+  sectionHeading: { fontSize: 16, fontWeight: '800', color: '#FFF', marginBottom: 12, marginTop: 10 },
+  genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  genreCard: { width: '48%', borderRadius: 14, padding: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  genreIcon: { fontSize: 20 },
+  genreName: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  playlistList: { gap: 12 },
+  playlistCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#151528', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#26264A' },
+  playlistCover: { width: 64, height: 64, borderRadius: 10 },
+  playlistInfo: { flex: 1, marginLeft: 12 },
+  playlistName: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  playlistDesc: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
+  playlistTracks: { color: '#38BDF8', fontSize: 11, fontWeight: '600', marginTop: 4 },
+  playBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' },
 });

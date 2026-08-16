@@ -1,37 +1,35 @@
 const express = require('express');
 const cors = require('cors');
-const logger = require('./middlewares/logger');
-const apiRoutes = require('./routes');
-const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
-
-// Middlewares
-app.use((req, res, next) => {
-  if (!req.env && typeof globalThis !== 'undefined' && globalThis.env) {
-    req.env = globalThis.env;
-  }
-  next();
-});
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(logger);
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to Express Backend API 🚀',
-    healthCheck: '/api/health',
-    users: '/api/users'
-  });
+// Forward requests to Cloudflare Worker router
+app.all('*', async (req, res) => {
+  try {
+    const { router } = await import('./routes/index.js');
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const headers = new Headers();
+    Object.entries(req.headers).forEach(([k, v]) => {
+      if (v) headers.set(k, Array.isArray(v) ? v.join(', ') : v);
+    });
+
+    const body = ['POST', 'PUT', 'PATCH'].includes(req.method)
+      ? JSON.stringify(req.body)
+      : undefined;
+
+    const requestObj = new Request(fullUrl, { method: req.method, headers, body });
+    const dummyEnv = globalThis.env || {};
+    const workerRes = await router(requestObj, dummyEnv);
+
+    res.status(workerRes.status);
+    workerRes.headers.forEach((val, key) => res.setHeader(key, val));
+    const data = await workerRes.text();
+    res.send(data);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
-
-// API Routes
-app.use('/api', apiRoutes);
-
-// Error Handling Middlewares
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 module.exports = app;

@@ -2,10 +2,24 @@ name = "react-native-backend"
 main = "src/worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-account_id = "f7b99d9c86f2b913c6caec26c6d047e7"
+account_id = "e31df8959f3a5ef85ea543dd630aeb54"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "react-native-db"
 database_id = "ba3b238f-985c-438d-adeb-ac8e31e5f71a"
 migrations_dir = "migrations"
+
+[vars]
+CLOUDINARY_CLOUD_NAME = "tdxtzxgh"
+CLOUDINARY_API_KEY = "625152226638393"
+CLOUDINARY_API_SECRET = "ttQBKQ1P00jZ__macku8tBTpt9M"
+JAMENDO_CLIENT_ID = "9eca7504"
+CF_API_TOKEN = "cfoat_tqDc4icnK2xOxYWmAIMJN0QLmet96Mo6RFa5U-AIHo0.qZgpif_cMpR_R0cLGZHetuFCZNKBRcEGCrYOm3KiWhY"
+
+[ai]
+binding = "AI"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "music-vectors"

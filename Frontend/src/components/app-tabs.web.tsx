@@ -7,7 +7,7 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+import { Pressable, useColorScheme, View, Text, StyleSheet } from 'react-native';
 
 import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
@@ -26,6 +26,12 @@ export default function AppTabs() {
           </TabTrigger>
           <TabTrigger name="explore" href="/explore" asChild>
             <TabButton>Explore</TabButton>
+          </TabTrigger>
+          <TabTrigger name="search" href={'/search' as any} asChild>
+            <TabButton>🔍 Tìm Kiếm</TabButton>
+          </TabTrigger>
+          <TabTrigger name="admin" href={'/admin' as any} asChild>
+            <TabButton>🎵 Music Admin</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -54,22 +60,13 @@ export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Expo Starter
-        </ThemedText>
+        <View style={styles.brandRow}>
+          <ThemedText type="smallBold" style={styles.brandLogo}>
+            🎵 TV<Text style={{ color: '#06B6D4' }}>MUSIC</Text>
+          </ThemedText>
+        </View>
 
         {props.children}
-
-        <ExternalLink href="https://docs.expo.dev" asChild>
-          <Pressable style={styles.externalPressable}>
-            <ThemedText type="link">Docs</ThemedText>
-            <SymbolView
-              tintColor={colors.text}
-              name={{ ios: 'arrow.up.right.square', web: 'link' }}
-              size={12}
-            />
-          </Pressable>
-        </ExternalLink>
       </ThemedView>
     </View>
   );
@@ -94,8 +91,13 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
-  brandText: {
+  brandRow: {
     marginRight: 'auto',
+  },
+  brandLogo: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   pressed: {
     opacity: 0.7,
@@ -104,12 +106,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
   },
 });
