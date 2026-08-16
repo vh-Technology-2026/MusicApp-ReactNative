@@ -4,7 +4,7 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SongItem } from '@/types/music';
-import { fetchMusicTracks, getFileUrl } from '@/services/music-api';
+import { fetchMusicTracks, searchMusicTracks, getFileUrl } from '@/services/music-api';
 import { HeaderNav } from '@/components/home/header-nav';
 import { VideoPlayerBanner } from '@/components/home/video-player-banner';
 import { CategoryPills } from '@/components/home/category-pills';
@@ -54,6 +54,8 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
   const [songs, setSongs] = useState<SongItem[]>(CURATED_SONGS);
+  const [searchResults, setSearchResults] = useState<SongItem[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [currentSong, setCurrentSong] = useState<SongItem | null>(CURATED_SONGS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,20 +68,18 @@ export default function HomeScreen() {
           id: `cloud_${t.id}`,
           title: t.title,
           artist: t.artist,
-          category: '☁️ Cloudinary Videos',
+          category: t.description ? t.description.slice(0, 25) : '☁️ Cloud Track',
           duration: '3:30',
           coverUrl: t.thumbnail_key
             ? getFileUrl(t.thumbnail_key)
             : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80',
           videoKey: t.video_key,
           videoUrl: t.video_key ? getFileUrl(t.video_key) : undefined,
-          plays: 'Cloudinary HD',
+          plays: 'Jamendo/D1 HD',
         }));
 
-        setSongs([...r2SongItems, ...CURATED_SONGS]);
-        // Auto select and play the newest R2 video!
+        setSongs(r2SongItems);
         setCurrentSong(r2SongItems[0]);
-        setIsPlaying(true);
       }
     } catch {
       // Backend offline fallback
@@ -90,6 +90,42 @@ export default function HomeScreen() {
     loadAllTracks();
   }, []);
 
+  // Debounced Semantic Search API Trigger
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchMusicTracks(searchQuery);
+        const mapped: SongItem[] = results.map((t) => ({
+          id: `search_${t.id}`,
+          title: t.title,
+          artist: t.artist,
+          category: '🔍 AI Semantic Match',
+          duration: '3:30',
+          coverUrl: t.thumbnail_key
+            ? getFileUrl(t.thumbnail_key)
+            : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80',
+          videoKey: t.video_key,
+          videoUrl: t.video_key ? getFileUrl(t.video_key) : undefined,
+          plays: 'Semantic Match',
+        }));
+        setSearchResults(mapped);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadAllTracks();
@@ -97,17 +133,18 @@ export default function HomeScreen() {
   };
 
   const filteredSongs = useMemo(() => {
+    if (searchResults !== null) {
+      return searchResults;
+    }
+
     return songs.filter((s) => {
-      const matchSearch =
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.artist.toLowerCase().includes(searchQuery.toLowerCase());
       const matchCat =
         selectedCategory === 'Tất cả' ||
         (selectedCategory === '🔥 Thịnh Hành' && true) ||
-        s.category === selectedCategory;
-      return matchSearch && matchCat;
+        s.category.toLowerCase().includes(selectedCategory.toLowerCase());
+      return matchCat;
     });
-  }, [songs, searchQuery, selectedCategory]);
+  }, [songs, searchResults, selectedCategory]);
 
   const handlePlaySong = (song: SongItem) => {
     if (currentSong?.id === song.id) {
@@ -154,7 +191,11 @@ export default function HomeScreen() {
         {/* Track Feed List */}
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>
-            🎬 Danh Sách Video & Bài Hát ({filteredSongs.length})
+            {isSearching
+              ? `🔍 Đang tìm kiếm ngữ nghĩa cho "${searchQuery}"...`
+              : searchResults !== null
+              ? `🔍 Kết quả tìm kiếm ngữ nghĩa cho "${searchQuery}" (${filteredSongs.length})`
+              : `🎬 Danh Sách Video & Bài Hát (${filteredSongs.length})`}
           </Text>
         </View>
 

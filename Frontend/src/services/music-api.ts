@@ -44,6 +44,23 @@ export async function fetchMusicTracks(): Promise<MusicTrack[]> {
   return res.data.data || [];
 }
 
+// ── Semantic Search Tracks ──────────────────────────────────────────────────
+export async function searchMusicTracks(query: string): Promise<MusicTrack[]> {
+  if (!query.trim()) return [];
+  const res = await axios.get<{ results: any[] }>(
+    `${API_BASE_URL}/api/music/search?q=${encodeURIComponent(query)}&limit=20`
+  );
+  return (res.data.results || []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    artist: t.artist,
+    description: t.description || '',
+    video_key: t.video_key || t.audioUrl || '',
+    thumbnail_key: t.thumbnail_key || t.artwork || '',
+    created_at: '',
+  }));
+}
+
 // ── Delete Track ────────────────────────────────────────────────────────────
 export async function deleteTrackById(id: number): Promise<void> {
   await axios.delete(`${API_BASE_URL}/api/music/${id}`);

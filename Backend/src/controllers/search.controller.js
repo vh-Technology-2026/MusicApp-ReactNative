@@ -66,13 +66,24 @@ export const SearchController = {
           });
 
           if (matches && matches.length > 0) {
-            const allTracks = matches.map((match) => ({
-              id: match.id,
-              title: match.metadata?.title || '',
-              artist: match.metadata?.artist || '',
-              score: Math.round(match.score * 100) / 100,
-              source: match.metadata?.source || 'unknown',
-            })).sort((a, b) => b.score - a.score);
+            const seen = new Set();
+            const allTracks = [];
+            for (const match of matches) {
+              const title = match.metadata?.title || '';
+              const artist = match.metadata?.artist || '';
+              const key = `${title.trim().toLowerCase()}|${artist.trim().toLowerCase()}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                allTracks.push({
+                  id: match.id,
+                  title,
+                  artist,
+                  score: Math.round(match.score * 100) / 100,
+                  source: match.metadata?.source || 'unknown',
+                });
+              }
+            }
+            allTracks.sort((a, b) => b.score - a.score);
 
             return jsonResponse({ query, total: allTracks.length, results: allTracks, mode: 'semantic' });
           }
@@ -81,12 +92,12 @@ export const SearchController = {
         }
       }
 
-      // Fallback: Search D1 SQLite database directly with stop-word filtering
+      // Fallback: Search D1 SQLite database directly with stop-word filtering & relevance scoring
       if (env.DB) {
         const stopWords = new Set(['nhạc', 'bài', 'cho', 'để', 'và', 'là', 'thì', 'của', 'với', 'kiểu', 'loại', 'các', 'những', 'cái', 'nó', 'vẫn', 'trả', 'về', 'nghe', 'tôi', 'tui', 'có']);
         const rawWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
         const meaningfulWords = rawWords.filter((w) => !stopWords.has(w));
-        const words = (meaningfulWords.length > 0 ? meaningfulWords : rawWords).slice(0, 4);
+        const words = (meaningfulWords.length > 0 ? meaningfulWords : rawWords).slice(0, 5);
 
         const conditions = words.map(() => `(title LIKE ? OR artist LIKE ? OR description LIKE ?)`).join(' OR ');
         const bindings = [];
@@ -94,7 +105,7 @@ export const SearchController = {
           const pattern = `%${w}%`;
           bindings.push(pattern, pattern, pattern);
         });
-        bindings.push(topK);
+        bindings.push(50); // Fetch top candidate pool
 
         const { results } = await env.DB.prepare(
           `SELECT * FROM music WHERE ${conditions} LIMIT ?`
@@ -102,18 +113,41 @@ export const SearchController = {
           .bind(...bindings)
           .all();
 
-        const formatted = (results || []).map((t) => ({
-          id: t.id,
-          title: t.title,
-          artist: t.artist,
-          description: t.description,
-          thumbnail_key: t.thumbnail_key,
-          video_key: t.video_key,
-          score: 1.0,
-          source: 'd1_local',
-        }));
+        const formatted = (results || [])
+          .map((t) => {
+            const text = `${t.title} ${t.artist} ${t.description}`.toLowerCase();
+            let matchedCount = 0;
+            words.forEach((w) => {
+              if (text.includes(w)) matchedCount++;
+            });
+            return {
+              id: t.id,
+              title: t.title,
+              artist: t.artist,
+              description: t.description,
+              thumbnail_key: t.thumbnail_key,
+              video_key: t.video_key,
+              score: Math.min(1.0, Math.round((matchedCount / words.length) * 100) / 100),
+              source: 'd1_local',
+              _matchedCount: matchedCount,
+            };
+          })
+          .sort((a, b) => b._matchedCount - a._matchedCount);
 
-        return jsonResponse({ query, total: formatted.length, results: formatted, mode: 'd1_fallback', keywords_used: words });
+        // Strict deduplication by title & artist
+        const seen = new Set();
+        const uniqueTracks = [];
+        for (const track of formatted) {
+          const key = `${(track.title || '').trim().toLowerCase()}|${(track.artist || '').trim().toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueTracks.push(track);
+          }
+        }
+
+        const finalResults = uniqueTracks.slice(0, topK);
+
+        return jsonResponse({ query, total: finalResults.length, results: finalResults, mode: 'd1_fallback', keywords_used: words });
       }
 
       return jsonResponse({ query, total: 0, results: [] });
@@ -140,6 +174,54 @@ export const SearchController = {
       return jsonResponse({ success: true, id: `music:${track.id}` });
     } catch (err) {
       return errorResponse(`Indexing failed: ${err.message}`, 500);
+    }
+  },
+
+  // ── GET /api/music/test-ai — Live AI Vector Match Test ──────────────────────
+  async testAiVector(request, env) {
+    try {
+      const queryText = 'nhạc tình yêu nước ngoài';
+      const sampleTracks = [
+        { title: 'Sweet Love', desc: 'Romantic English love song for couples, soft acoustic guitar' },
+        { title: 'Sad Duduk Solo', desc: 'Sad grief heartbreak and melancholy instrumental' },
+        { title: 'Hardcore Metal', desc: 'Energetic heavy metal electric guitar noise' },
+        { title: 'Club Dance', desc: 'Upbeat EDM dance club electronic party beat' },
+      ];
+
+      const queryVec = await getEmbedding(queryText, env);
+      const results = [];
+
+      for (const track of sampleTracks) {
+        const text = `Title: ${track.title} | Description: ${track.desc}`;
+        const trackVec = await getEmbedding(text, env);
+
+        let dot = 0, mA = 0, mB = 0;
+        for (let i = 0; i < queryVec.length; i++) {
+          dot += queryVec[i] * trackVec[i];
+          mA += queryVec[i] * queryVec[i];
+          mB += trackVec[i] * trackVec[i];
+        }
+        const score = dot / (Math.sqrt(mA) * Math.sqrt(mB));
+        const matchPct = Math.round(score * 100);
+
+        results.push({
+          title: track.title,
+          description: track.desc,
+          match_score: `${matchPct}%`,
+          score_decimal: Math.round(score * 1000) / 1000,
+        });
+      }
+
+      results.sort((a, b) => b.score_decimal - a.score_decimal);
+
+      return jsonResponse({
+        success: true,
+        query: queryText,
+        note: 'Tiếng Việt 100% -> Tự động khớp với nhạc Romantic English bằng Cloudflare BGE-M3 Vector Embedding',
+        results,
+      });
+    } catch (err) {
+      return errorResponse(`Test failed: ${err.message}`, 500);
     }
   },
 };

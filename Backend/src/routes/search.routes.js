@@ -8,6 +8,11 @@ export async function handleSearchRoutes(pathname, method, request, env) {
     return SearchController.semanticSearch(request, env);
   }
 
+  // Live AI Vector Match Test
+  if (pathname === '/api/music/test-ai' && method === 'GET') {
+    return SearchController.testAiVector(request, env);
+  }
+
   // Index a single track into Vectorize
   if (pathname === '/api/music/index' && method === 'POST') {
     return SearchController.indexTrack(request, env);
