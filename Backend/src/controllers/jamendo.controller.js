@@ -132,3 +132,72 @@ export const JamendoController = {
     }
   },
 };
+
+const GENRE_MOOD_MAP = {
+  sad: 'nhạc buồn, thất tình, tâm trạng, sâu lắng, cô đơn, khóc, chia tay, sad, heartbreak, lonely, emotional',
+  happy: 'nhạc vui vẻ, yêu đời, tươi sáng, tích cực, vui tươi, happy, cheerful, uplifting, positive',
+  energetic: 'nhạc ồn ào, khuấy động, bùng nổ, quẩy, hăng hái, sôi động, energetic, explosive, party',
+  party: 'nhạc quẩy, ồn ào, khuấy động, tiệc tùng, sôi động, bar, club, dance, festival',
+  relaxing: 'nhạc nhẹ, thư giãn, êm dịu, nhẹ nhàng, ngủ ngon, xả stress, relaxing, peaceful, calm',
+  sleep: 'nhạc ngủ, thư giãn sâu, không lời, nhẹ nhàng, du dương, sleep, insomnia, meditation',
+  workout: 'nhạc tập gym, thể thao, động lực, dồn dập, bốc lửa, workout, fitness, motivation',
+  romantic: 'nhạc tình yêu, lãng mạn, đôi lứa, ngọt ngào, romantic, love, sweet',
+  chillout: 'nhạc chill, nhẹ nhàng, quán cafe, học bài, làm việc, lofi, chillout, study, focus',
+  pop: 'nhạc pop, nhạc trẻ, bắt tai, vui tươi, giai điệu, popular, catchy',
+  rock: 'nhạc rock, guitar điện, mạnh mẽ, ồn ào, cá tính, rock, electric guitar',
+  jazz: 'nhạc jazz, saxophone, piano, quán cafe, sang trọng, tinh tế, jazz, blues',
+  classical: 'nhạc cổ điển, hòa tấu, không lời, piano, giao hưởng, violin, classical, symphony',
+  acoustic: 'nhạc mộc, guitar gỗ, nhẹ nhàng, mộc mạc, bình yên, acoustic, folk',
+  electronic: 'nhạc điện tử, edm, quẩy, sôi động, biến ảo, electronic, edm, synth',
+};
+
+export async function autoSeedJamendo(env) {
+  console.log('⏰ [Cloudflare Cron Job] Auto-seeding Jamendo tracks to Remote D1...');
+  const categories = Object.keys(GENRE_MOOD_MAP);
+  let totalInserted = 0;
+
+  for (const cat of categories) {
+    try {
+      const clientId = env.JAMENDO_CLIENT_ID || '9eca7504';
+      const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${clientId}&format=json&limit=10&include=musicinfo&audioformat=mp32&tags=${cat}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const tracks = data.results || [];
+
+      for (const track of tracks) {
+        const title = track.name || '';
+        const artist = track.artist_name || '';
+        const tagExtra = GENRE_MOOD_MAP[cat] || '';
+        const rawTags = (track.musicinfo?.tags?.genres || [])
+          .concat(track.musicinfo?.tags?.moods || [])
+          .concat(track.musicinfo?.tags?.instruments || [])
+          .join(', ');
+        const desc = `Categories: ${cat}, ${rawTags} | Keywords: ${tagExtra}`;
+        const audioUrl = track.audio || '';
+        const artwork = track.album_image || '';
+
+        // Check for duplicate title & artist in D1
+        const existing = await env.DB.prepare(
+          'SELECT id FROM music WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)'
+        )
+          .bind(title, artist)
+          .first();
+
+        if (!existing) {
+          await env.DB.prepare(
+            `INSERT INTO music (title, artist, description, video_key, thumbnail_key) VALUES (?, ?, ?, ?, ?)`
+          )
+            .bind(title, artist, desc, audioUrl, artwork)
+            .run();
+
+          totalInserted++;
+        }
+      }
+    } catch (err) {
+      console.warn(`Cron seed error for genre ${cat}:`, err.message);
+    }
+  }
+
+  console.log(`✅ [Cloudflare Cron Job Finished] Successfully seeded ${totalInserted} new non-duplicate tracks into D1 Remote.`);
+  return totalInserted;
+}

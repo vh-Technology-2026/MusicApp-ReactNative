@@ -23,3 +23,6 @@ binding = "AI"
 [[vectorize]]
 binding = "VECTORIZE"
 index_name = "music-vectors"
+
+[triggers]
+crons = ["0 0 * * *"] # Tự động chạy mỗi ngày lúc 00:00 UTC (7:00 AM giờ VN)
